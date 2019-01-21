@@ -779,7 +779,7 @@ function createConditionRow(_parentContainer, _condition, _n) {
 */
 }
 
-function setLabel() {
+function setLabel(_flag) {
 	
 	pedigree.labelContent = {
 		aa_pdId:false,
@@ -789,14 +789,17 @@ function setLabel() {
 		comments: false
 	}
 	
-	var values = $('#labelOptions').val();
-	
-	if (values) {
-		for (var i=0; i<values.length; i++) {
-			var item = values[i];
-			pedigree.labelContent[values[i]] = true;
+	if (_flag) {
+		var values = $('#labelOptions').val();
+		
+		if (values) {
+			for (var i=0; i<values.length; i++) {
+				var item = values[i];
+				pedigree.labelContent[values[i]] = true;
+			}
 		}
 	}
+	else $('#labelOptions').val('');
 	pedigree.drawFamily();	
 }
 function defineLabel() {
