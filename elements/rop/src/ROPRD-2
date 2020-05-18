@@ -1,0 +1,295 @@
+/**
+ * OpenEyes
+ *
+ * (C) Moorfields Eye Hospital NHS Foundation Trust, 2008-2011
+ * (C) OpenEyes Foundation, 2011-2013
+ * This file is part of OpenEyes.
+ * OpenEyes is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ * OpenEyes is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with OpenEyes in a file titled COPYING. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @package OpenEyes
+ * @link http://www.openeyes.org.uk
+ * @author OpenEyes <info@openeyes.org.uk>
+ * @copyright Copyright (c) 2008-2011, Moorfields Eye Hospital NHS Foundation Trust
+ * @copyright Copyright (c) 2011-2013, OpenEyes Foundation
+ * @license http://www.gnu.org/licenses/gpl-3.0.html The GNU General Public License V3.0
+ */
+
+/**
+ * ROP Retinal Detachment
+ *
+ * @class ROPRD
+ * @property {String} className Name of doodle subclass
+ * @param {Drawing} _drawing
+ * @param {Object} _parameterJSON
+ */
+ED.ROPRD = function(_drawing, _parameterJSON) {
+	// set classname
+	this.className = "ROPRD";
+	
+	this.savedParameterArray = ['originX','originY'];
+	
+	// private parameters
+	this.numberOfAnchors = 2;
+	this.anz = 2;
+	this.onOD = false;
+	
+	
+	// call superclass constructor
+	ED.Doodle.call(this, _drawing, _parameterJSON);
+}
+
+/** 
+* Sets superclass and constructor
+*/
+ED.ROPRD.prototype = new ED.Doodle;
+ED.ROPRD.prototype.constructor = ED.ROPRD;
+ED.ROPRD.superclass = ED.Doodle.prototype;
+
+
+/**
+* Sets handle attributes
+*/
+ED.ROPRD.prototype.setHandles = function() {
+    // Array of handles
+        // loop making each anchor point a handle -- multiply by 3 when want to add control points :)
+    for (var i = 0; i < this.numberOfAnchors * 3; i++) {
+        this.handleArray[i] = new ED.Doodle.Handle(null, true, ED.Mode.Handles, false);
+    }
+    // The first anchor point / handle will also rotate the doodle
+	this.handleArray[0].isRotatable = true;
+}
+
+/**
+* Sets default properties
+*/
+                                                                                         //
+                                                                                         // 
+ED.ROPRD.prototype.setPropertyDefaults = function() {                                    //
+    this.addAtBack = true;  
+    this.canAddAnchors = true;  
+    
+    this.parameterValidationArray['originX']['range'].setMinAndMax(-1000, +1000);
+	this.parameterValidationArray['originY']['range'].setMinAndMax(-1000, +1000);                                                                               //
+}                                                                                        //
+                                                                                         //  
+
+
+/**
+* Sets default parameters
+*/
+ED.ROPRD.prototype.setParameterDefaults = function() {	
+	if (this.drawing.eye != ED.eye.Right) {
+		var dir = -1;
+	} else {
+		var dir = +1;
+	}
+	
+	// create a squiggle to store the anchor points
+	var squiggle = new ED.Squiggle(this, new ED.Colour(100,100,100,1), 4, true);
+	
+	// add the squiggle to the squiggle array!
+	this.squiggleArray.push(squiggle);
+	
+	// predefine 2 anchor points, and push to points array
+	var point1 = new ED.Point(-480 * dir,-0);
+	this.addPointToSquiggle(point1);
+	var point2 = new ED.Point(0 * dir,480);
+	this.addPointToSquiggle(point2);
+	
+	
+	// predefine 2 control points for each anchor, and push to points array
+	// c1's control the clockwise bezier, c2s the anticlockwise bezier
+	    // all cp1's defined in points array first, then all cp2's
+	    // thus related points (the anchor and it's 2 controls) can be linked: 
+	        // anchor = i; anchor.cp1 = i + this.numberOfAnchors; anchor.cp2 = this.numberOfAnchors * 2
+	var c11 = new ED.Point(-460 * dir,143);
+	this.addPointToSquiggle(c11);
+	var c12 = new ED.Point(-270 * dir,350);
+	this.addPointToSquiggle(c12);
+	var c21 = new ED.Point(-260 * dir,130);
+	this.addPointToSquiggle(c21);
+	var c22 = new ED.Point(-143 * dir,460);
+	this.addPointToSquiggle(c22);
+
+// 	this.squiggleArray[0].pointsArray[0].cp1 = { x: -460 * dir, y: -285 };
+// 	this.squiggleArray[0].pointsArray[0].cp2 = { x: -270 * dir, y: -260 };
+// 	this.squiggleArray[0].pointsArray[1].cp1 = { x: -260 * dir, y: -270 };
+// 	this.squiggleArray[0].pointsArray[1].cp2 = { x: -285 * dir, y: -460 };
+}
+
+
+/**
+ * Draws doodle or performs a hit test if a Point parameter is passed
+ *
+ * @param {Point} _point Optional point in canvas plane, passed if performing hit test
+ */
+ED.ROPRD.prototype.draw = function(_point) {
+    // get context
+	var ctx = this.drawing.context;
+	this.anz = this.numberOfAnchors;
+    
+    // call draw method in superclass
+	ED.ROPRD.superclass.draw.call(this, _point);
+	
+	// boundary path
+	ctx.beginPath();
+
+    // bezier points - from, to, control point 1, control point 2
+    var frmAnch;
+    var toAnch;
+    var ctrlP1;
+    var ctrlP2;
+
+    // start curve at the first anchor point
+    ctx.moveTo(this.squiggleArray[0].pointsArray[0].x,this.squiggleArray[0].pointsArray[0].y);
+    
+    // bezier curves to all other points
+        // if it is the last point in the array, it will curve to the first point, closing the shape!
+    for (var i = 0; i < this.numberOfAnchors; i++) {
+        frmAnch = this.squiggleArray[0].pointsArray[i];
+        
+        var toIndex = ( i < this.numberOfAnchors - 1) ? i + 1 : 0;
+        toAnch = this.squiggleArray[0].pointsArray[toIndex];
+        
+        ctrlP1 = this.squiggleArray[0].pointsArray[i + this.numberOfAnchors];
+        ctrlP2 = this.squiggleArray[0].pointsArray[toIndex + (this.numberOfAnchors * 2)];
+        
+//         ctx.bezierCurveTo(ctrlP1.x, ctrlP1.y, ctrlP2.x, ctrlP2.y, toAnch.x, toAnch.y);
+        ctx.bezierCurveTo(2*ctrlP1.x-frmAnch.x, 2*ctrlP1.y-frmAnch.y, 2*ctrlP2.x-toAnch.x, 2*ctrlP2.y-toAnch.y, toAnch.x, toAnch.y);
+    }
+    
+    ctx.closePath();
+
+    // set style attributes
+    ctx.lineWidth = 4;
+    ctx.lineJoin = "round";
+    ctx.fillStyle = "rgba(0, 0, 255, 0.7)";
+    ctx.strokeStyle = "blue";
+    
+
+    // Draw boundary path (also hit testing)
+	this.drawBoundary(_point);
+    
+    
+    // Draw optic disc on top
+    // Coordinates of Optic Disc -- X coordinate different for each eye!
+    if (this.drawing.eye != ED.eye.Right) {
+		var opticDiscX = -69 - this.originX;
+	} 
+	else if (this.drawing.eye != ED.eye.Left) {
+		var opticDiscX = 69 - this.originX;
+	}
+	var opticDiscY = 0 - this.originY;
+
+    // rotation matrix to adjust for rotated doodle plane 
+    var aX = (Math.cos(this.rotation) * opticDiscX) + (Math.sin(this.rotation) * opticDiscY);
+    var aY = (Math.cos(this.rotation) * opticDiscY) - (Math.sin(this.rotation) * opticDiscX);
+	
+    // ctx.beginPath();
+//     ctx.strokeStyle = "red";
+//     ctx.fillStyle = "white";
+//     ctx.lineWidth=4;
+//     ctx.arc(aX,aY,17,0,2 * Math.PI);
+//     ctx.stroke();
+//     ctx.fill();
+//     ctx.closePath();
+    
+    
+	// if shape is selected, draw control lines
+	    // loop for each anchor point
+	if (this.drawFunctionMode == ED.drawFunctionMode.Draw) {
+		if (this.isSelected) {
+		    ctx.lineWidth = 2;
+            ctx.strokeStyle = "#C00";
+            ctx.beginPath();
+            for (var i = 0; i < this.numberOfAnchors; i++) {
+                ctx.moveTo(this.squiggleArray[0].pointsArray[i + this.numberOfAnchors].x, this.squiggleArray[0].pointsArray[i + this.numberOfAnchors].y);
+                ctx.lineTo(this.squiggleArray[0].pointsArray[i].x, this.squiggleArray[0].pointsArray[i].y);
+                ctx.lineTo(this.squiggleArray[0].pointsArray[i + (2 * this.numberOfAnchors)].x, this.squiggleArray[0].pointsArray[i + (2 * this.numberOfAnchors)].y);
+            }
+            ctx.stroke();
+        }
+    }
+    
+
+    // coordinates for anchor and control points (in canvas plane)
+    for (var i = 0; i < this.numberOfAnchors * 3; i++) {
+        this.handleArray[i].location = this.transform.transformPoint(this.squiggleArray[0].pointsArray[i]);
+    }
+
+	// draw handles if selected
+	if (this.isSelected && !this.isForDrawing) this.drawHandles(_point);
+    
+    
+    // return value indicating successful hittest
+	return this.isClicked;
+	
+}
+
+
+/**
+ * Returns a string containing a text description of the doodle
+ *
+ * @returns {String} Description of doodle
+ */
+ED.ROPRD.prototype.description = function() {
+	// Construct description
+	var returnString = "";
+	returnString = returnString + "Retinal detachment";
+	returnString = returnString + (this.isMacOff() ? " (macula off)" : " (macula on)");
+
+	return returnString;
+}
+
+/**
+ * Determines whether the macula is off or not
+ *
+ * @returns {Bool} True if macula is off
+ */
+ED.ROPRD.prototype.isMacOff = function() {
+// Get coordinates of macula in doodle plane
+// 	var macula;
+// 	
+// 	if (this.drawing.eye != ED.eye.Right) {
+// 		macula = new ED.Point(+10, 0);
+// 	} 
+// 	else if (this.drawing.eye != ED.eye.Left) {
+// 		macula = new ED.Point(-10, 0);
+// 	}
+// 
+// Convert to canvas plane
+// 	var maculaCanvas = this.drawing.transform.transformPoint(macula);
+// 
+// Determine whether macula is off or not
+// 	if (this.draw(maculaCanvas)) return true;
+// 	else return false;
+}
+
+
+/**
+ * Determines zone of doodle
+ *
+ * @returns {Int} 1,2,3
+ */
+ED.ROPRD.prototype.zoning = function() {
+	// Get coordinates of macula in doodle plane
+	var macula;
+	
+	if (this.drawing.eye != ED.eye.Right) {
+		macula = new ED.Point(+10, 0);
+	} 
+	else if (this.drawing.eye != ED.eye.Left) {
+		macula = new ED.Point(-10, 0);
+	}
+
+	// Convert to canvas plane
+	var maculaCanvas = this.drawing.transform.transformPoint(macula);
+
+	// Determine whether macula is off or not
+	if (this.draw(maculaCanvas)) return true;
+	else return false;
+}
+
+

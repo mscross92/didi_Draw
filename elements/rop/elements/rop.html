@@ -1,0 +1,789 @@
+<!doctype html>
+<html>
+<head>
+	<title>Demo | ROP screening</title>
+
+	<!-- The eyedraw stylesheet -->
+	<link rel="stylesheet" type="text/css" href="../css/oe-eyedraw.css" />
+	<!-- Custom stylesheet - overrides some OE eyedraw stylings -->
+	<link rel="stylesheet" type="text/css" href="../css/MC.css" />
+
+	<!-- Other dependent scripts -->
+	<script type="text/javascript" src="../scripts/ROP/jquery.min.js"></script>
+	<script type="text/javascript" src="../scripts/ROP/mustache.js"></script>
+	<script type="text/javascript" src="../scripts/ROP/eventemitter2.js"></script>
+
+	<!-- Eyedraw -->
+	<script type="text/javascript" src="../../../eyedraw-paeds/assets/js/dist/eyedraw.js"></script>
+	<script type="text/javascript" src="../scripts/ROP/oe-eyedraw.js"></script>
+
+	<!-- Lists of scripts -->
+	<script src="../scripts/ROP/ropDoodles.js"></script>
+	<script src="../scripts/ROP/ropImages.js"></script>
+	<script src="../scripts/ROP/ropDoodleTitles.js"></script>
+	<script src="../scripts/ROP/rop.js"></script>
+	<script src="../scripts/ROP/rop2.js"></script>
+	
+</head>
+
+<header>
+	<!-- today's date -->
+<!-- 	<div id="today"></div> -->
+</header>
+
+<body onload="eyeDrawController(); eyeDrawController2()">
+<div id="dataset">		
+
+	<!-- form section 1: DoB, corrected age, birth weight -->
+	<div class="page-section">
+		<div class="hdr">Patient
+			<div id="today" style="float: right;color: #4e4e4e; font-size: 80%; line-height: 100%; vertical-align: text-bottom"></div>
+		</div>
+		
+		<!-- Pop out past records / screening timeline -->
+		<div style="margin-bottom: -25px;" class="oldP rop-button" id="popToggler" style="display: none;"onclick="ropPopF()">&rarr; Hide previous records</div>
+		<div class="oldP rop-popout" id="ropPop">
+			<div class="popout-contents" onmouseover="zoomIN()" onmouseout="zoomOUT()">
+				<div id="popout1">
+					<b>1. 02/10/2015</b> (30 weeks, 5 days postmenstrual)<br>
+					<span><img src="../img/icons/Maria/drawing1.png" width="115px" style="padding-left: 15px; margin-bottom: -5px;"></span>
+					<span style="display: inline-block; vertical-align: top; padding-top: 6px; padding-left: 5px;"><b>R:</b> Zone 1. Stage 2.<br>
+					<b>L:</b> Zone 2. Stage 3.</span>
+				</div>
+				
+				<div id="popout2" style="display: none;">
+					<b>1. 02/10/2015</b> (30 weeks, 5 days postmenstrual)<br>
+					<span style="display: inline-block; vertical-align: top; padding-top: 6px; padding-left: 22px;"><b>R:</b> Zone 1. Stage 2.
+					<span style="padding-right: 30px;"></span><b>L:</b> Zone 2. Stage 3.
+					<br>
+					<span style="font-size: 90%">
+					Elevated ridge.<span style="padding-right: 70px;"></span>Fibrovascular proliferation.<br>
+					</span>
+					<span><img src="../img/icons/Maria/drawing1.png" width="310px" style="padding-right: 10px; margin-bottom: -5px;"></span>
+					<span style="font-size: 90%">
+					No treatment.<span style="padding-right: 77px;"></span>To treat: Diode laser<br>
+					<div style="margin-top: -5px; padding-left: 157px">2131 burns, 400mW, 200ms</div>
+					</span>
+					</span>
+<!-- 					<span><img src="../img/drawing1.png" width="310px" style="padding-left: 24px; margin-bottom: -5px;"></span> -->
+					Follow up: 1 week.
+				</div>
+			</div>
+		
+			<div style="font-size: 80%; float: left; text-align:center; width: 100%; background: #fcfaff; border-bottom: 1px solid rgba(0, 0, 0, .2)">No older records</div>
+		</div>
+
+		<div class="form-section" id="section1">
+			<div id="frm-input-sctn" style="width: 100%">
+				<div id="pDeets" class="input-field oldP newP startP">
+					Hospital Number:<span style="padding-right: 24px;"></span>
+					<input type="text" id="hospNoInput" size="8" style="font-size: 100%;font-weight: 400;border: 1px solid rgba(0,0,0,0.2);"onchange="identifyPatient(this.id)">
+					<a id="search1" href="#" class="startP" style="vertical-align: top">
+						<img src="../img/icons/Maria/searchIcon.png" alt="Search" class="search-button" onmouseover="document.getElementById('searchLbl1').style.display = 'block';" onmouseout="document.getElementById('searchLbl1').style.display = 'none';" onclick="identifyPatient('hospNoInput')">
+						<span class="lbl" id="searchLbl1" style="display: none;">Search</span>
+					</a>
+					
+					<a id="patientDetails" class="oldP" href="#" href="javascript:;" style="vertical-align: top">
+						<img src="../img/icons/Maria/patientDemogsIcon.png" alt="View details" class="demogs-button" onmouseover="document.getElementById('viewDeetsLbl').style.display = 'block';" onmouseout="document.getElementById('viewDeetsLbl').style.display = 'none';">
+						<span id="viewDeetsLbl" class="lbl" style="color: black;display: none;">View patient details</span>
+					</a>
+
+					<div class="warning" style="display: none; padding-left: 140px;color: blue">No record found</div>
+				</div>
+				
+				<div class="input-field newP startP">
+					NHS Number:<span style="padding-right: 45px;"></span>
+					<input type="text" id="nhsNoInput" size="8" style="font-size: 100%;font-weight: 400;border: 1px solid rgba(0,0,0,0.2);" onchange="identifyPatient(this.id)">
+					<a id="search2" href="#" class="startP" style="vertical-align: top">
+						<img src="../img/icons/Maria/searchIcon.png" alt="Search" class="search-button" onmouseover="document.getElementById('searchLbl2').style.display = 'block';" onmouseout="document.getElementById('searchLbl2').style.display = 'none';" onclick="identifyPatient('nhsNoInput')">
+						<span class="lbl" style="color: black;display: none;" id="searchLbl2">Search</span>
+					</a>					
+					<div class="warning" style="display: none; padding-left: 134px;color: blue">No record found</div>
+				</div>
+				
+				<div class="input-field oldP">
+					<span class="calculatedFieldLabel">Examination number:&nbsp<input type="text" size="2" id="examNoInput" class="calcOutputBox" style="font-size: 100%;color: blue; font-weight: 400;text-align: center;border: 1px solid rgba(0,0,0,0.2);">
+					</span>
+<!-- 					<br> -->
+<!-- 					<span class="warning" id="prvs" style="color: blue; float: right;">*No previous record found</span> -->
+<!-- 					</span> -->
+				</div>
+				
+				
+				<div class="input-field newP">
+					First Name:<span style="padding-right: 60px;"></span>
+					<input type="text" size="15" id="firstInput" style="font-size: 100%;font-weight: 400;border: 1px solid rgba(0,0,0,0.2);">
+				</div>
+				
+				<div class="input-field newP">
+					Last Name:<span style="padding-right: 61px;"></span>
+					<input type="text" size="15" id="lastInput" style="font-size: 100%;font-weight: 400;border: 1px solid rgba(0,0,0,0.2);">
+				</div>
+<!-- 				</div> -->
+				
+			    <div id="dob" class="input-field oldP newP">
+		        	Date of birth:<span style="padding-right: 50px;"></span>
+		            <select id="dobDay" onchange="calculateCorrectedAge()">
+		            	<option value=99 disabled selected>day</option>
+		                <option value=1> 1</option>
+		                <option value=2> 2</option>
+		                <option value=3> 3</option>
+		                <option value=4> 4</option>
+		                <option value=5> 5</option>
+		                <option value=6> 6</option>
+		                <option value=7> 7</option>
+		                <option value=8> 8</option>
+		                <option value=9> 9</option>
+		                <option value=10>10</option>
+		                <option value=11>11</option>
+		                <option value=12>12</option>
+		                <option value=13>13</option>
+		                <option value=14>14</option>
+		                <option value=15>15</option>
+		                <option value=16>16</option>
+		                <option value=17>17</option>
+		                <option value=18>18</option>
+		                <option value=19>19</option>
+		                <option value=20>20</option>
+		                <option value=21>21</option>
+		                <option value=22>22</option>
+		                <option value=23>23</option>
+		                <option value=24>24</option>
+		                <option value=25>25</option>
+		                <option value=26>26</option>
+		                <option value=27>27</option>
+		                <option value=28>28</option>
+		                <option value=29>29</option>
+		                <option value=30>30</option>
+		                <option value=31>31</option>
+					</select>
+		            <select id="dobMonth" onchange="calculateCorrectedAge()" style="margin-left: -4px">
+		              <option value=99 disabled selected>month</option>
+		                <option value=0>January</option>
+		                <option value=1>February</option>
+		                <option value=2>March</option>
+		                <option value=3>April</option>
+		                <option value=4>May</option>
+		                <option value=5>June</option>
+		                <option value=6>July</option>
+		                <option value=7>August</option>
+		                <option value=8>September</option>
+		                <option value=9>October</option>
+		                <option value=10>November</option>
+		                <option value=11>December</option>
+		            </select>
+		            <select id="dobYear" class="year" onchange="calculateCorrectedAge()" style="margin-left: -4px">
+		              <option value="2015">2015</option>
+		              <option value="2014">2014</option>
+		              <option value="2013">2013</option>
+		              <option value="2012">2012</option>
+		              <option value="2011">2011</option>
+		            </select>
+		            <div class="warning" id="calculatorWarning1" style="padding-left: 142px;"></div>
+		        </div>
+		        
+		        <div class="input-field oldP newP">
+					<span class="calculatedFieldLabel">Age:<span style="padding-right: 102px;"></span>
+					</span>
+					<span style="font-size: 90%;">
+						<span id="mnthsAoutput" style="display: none;"><input type="text" id="ageStringMonths" class="calcOutputBox" style="width: 20px;"> <span id="calcMonthsLabelA">months</span>, </span>
+						&nbsp<input type="text" id="ageStringWeeks" class="calcOutputBox" style="width: 20px;"> <span id="calcWeeksLabelA">weeks</span>,&nbsp
+						<input type="text" id="ageStringDays" class="calcOutputBox" style="width: 15px;"> <span id="calcDaysLabelA">days</span>.
+						&nbsp&nbsp&nbsp<span class="warning" id="calculatorWarning3"></span> 
+					</span>
+				</div>
+		        
+		        <div id="corrected age" class="input-field oldP newP">
+			        Gestation:<span style="padding-right: 71px;"></span>
+					<span style="font-size: 90%">
+						<input type="text" id="estimatedGestAge" style="width: 20px; font-size: 100%;font-weight: 400;text-align: center;border: 1px solid rgba(0,0,0,0.2);" oninput="calculateCorrectedAge()"> weeks,&nbsp
+						<input type="text" id="estimatedGestAgeDays" style="width: 15px;font-size: 100%;font-weight: 400;text-align: center;border: 1px solid rgba(0,0,0,0.2);" oninput="calculateCorrectedAge()"> days.
+					</span>
+		        </div>
+		        
+		        <div class="input-field oldP newP">
+					<span class="calculatedFieldLabel">Postmenstrual age:<span style="padding-right: 10px;"></span>
+					</span>
+					<span style="font-size: 90%">
+						<span id="mnthsPMAoutput" style="display: none;"><input type="text" id="correctedAgeStringMonths" class="calcOutputBox" style="width: 20px;"> <span id="calcMonthsLabel">months</span>, </span>
+						&nbsp<input type="text" id="correctedAgeStringWeeks" class="calcOutputBox" style="width: 20px;"> <span id="calcWeeksLabel">weeks</span>,&nbsp
+						<input type="text" id="correctedAgeStringDays" class="calcOutputBox" style="width: 15px;"> <span id="calcDaysLabel">days</span>.
+						&nbsp&nbsp&nbsp<span class="warning" id="calculatorWarning2"></span> 
+					</span>
+				</div>
+				
+				<div class="input-field oldP newP">
+					Birth weight:<span style="padding-right: 56px;"></span>
+					<input type="text" id="weightInput" size="5" style="font-size: 100%;font-weight: 400;text-align: center;border: 1px solid rgba(0,0,0,0.2);">&nbsp
+					<span style="font-size: 90%;">grams.</span>
+				</div>
+								
+			
+				<div id="gender" class="input-field oldP newP">
+					Gender:<span style="padding-right: 84px;"></span>
+					<span style="font-size: 90%;"><input type="radio" name="sex" value="m" id="sexM"><label for="sexM">&nbspMale</label>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+					<input type="radio" name="sex" value="f" id="sexF"><label for="sexF">&nbspFemale</label></span>
+				</div>
+<br>
+				<div id="ethnicity" class="input-field newP" style="width: 100%">
+					Ethnicity:<span style="padding-right: 77px;"></span>
+					<select id="ethncty">
+		            	<option value="" disabled selected>-----------Select------------</option>
+		                <option value="0">British</option>
+		                <option value="1">Irish</option>
+		                <option value="2">Any other white background</option>
+		                <option value="3">White and black Caribbean</option>
+		                <option value="4">White and asian</option>
+		                <option value="5">Any other mixed background</option>
+		                <option value="6">Indian</option>
+		                <option value="7">Pakistani</option>
+		                <option value="8">Bangladeshi</option>
+		                <option value="9">Any other Asian background</option>
+		                <option value="10">Caribbean</option>
+		                <option value="11">African</option>
+		                <option value="12">Any other black background</option>
+		                <option value="13">Chinese</option>
+		                <option value="14">Any other ethnic group</option>
+		                <option value="15">Not stated</option>
+					</select>
+				</div>
+				
+				<div id="pregType" class="input-field newP" style="width: 100%">
+					Pregnancy type:<span style="padding-right: 34px;"></span>
+					<span style="font-size: 90%;">
+						<input type="radio" name="pregnancy" value="0" id="p0"><label for="p0">&nbspSingleton</label>&nbsp&nbsp&nbsp 
+						<input type="radio" name="pregnancy" value="1" id="p1"><label for="p1">&nbspTwin</label>&nbsp&nbsp&nbsp
+						<input type="radio" name="pregnancy" value="2" id="p2"><label for="p2">&nbspTriplet</label>&nbsp&nbsp&nbsp
+						<input type="radio" name="pregnancy" value="3" id="p3"><label for="p3">&nbspOther&nbsp<input type="text" size="18"></label>
+					</span>
+		        </div>
+		        
+		        <div id="concepType" class="input-field newP" style="width: 100%">
+					Conception type:<span style="padding-right: 31px;"></span>
+					<span style="font-size: 90%;">
+						<input type="radio" name="conception" value="0" id="c0"><label for="c0">&nbspNatural</label>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+						<input type="radio" name="conception" value="1" id="c1"><label for="c1">&nbspIVI</label>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+						<input type="radio" name="conception" value="2" id="c2"><label for="c2">&nbspICSI</label>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+						<input type="radio" name="conception" value="3" id="c3"><label for="c3">&nbspIVF</label>
+					</span>
+		        </div>
+			</div>
+		</div>
+	</div>
+	<!-- end of demographs form section -->
+	
+	
+	<!-- Observations section: canvas, bound form and report -->
+	<div class="page-section" style="background: #fcfcfc;">
+		<div class="hdr">Assessment</div>
+			<div id="assmentSctn">
+				<div class="oneEyeFindings" style="float: left;background: #fcfcfc;">
+					<div class="ed-widget" id="eyedrawwidget_example">
+						<div class="ed-editor">
+							<div class="ed-drawing-controls" style="z-index: 101;">
+								<div style="float: left; padding-right: 9px; vertical-align: top; margin-top: 0;"><b>R</b></div>
+								<div class="ed-selected-doodle" style="float: left; padding: 0; margin: 0; width: 85%;">
+									<select id="canvasRE_selected_doodle" class="ed-selected-doodle-select">
+									</select>
+								</div>
+								<ul class="ed-toolbar-panel ed-drawing-toolbar" style="padding-left: 7px">
+									<li>
+										<a class="ed-button" href="#" data-function="resetEyedraw">
+											<span class="icon-ed-reset"></span>
+											<span class="label" style="color: black;">Reset eyedraw</span>
+										</a>
+									</li>
+								</ul>
+								
+							</div>
+							
+							<div class="ed-doodle-popup closed" style="z-index: 50;"></div>
+											
+							<div class="canvas-section" style="z-index: 100;">
+								<div class="ed-toolbar">
+					                <ul class="ed-toolbar-panel ed-main-toolbar" id="toolbar" style="display: table; margin: 0 auto;">
+					                </ul>
+					            </div>
+					            
+								<canvas
+								id="canvasRE"
+								class="ed-canvas-edit"
+								width="300"
+								height="300"
+								tabindex="1"
+								style="float: left; z-index: 100;"
+								>
+								Browser does not support the drawing tools. Please just use the form below.
+								</canvas>
+							</div>
+								
+                    <input type="hidden" id="ed_example_data" name="OEModule_OphCiExamination_models_Element_OphCiExamination_AnteriorSegment[right_eyedraw]" value="">
+						</div>
+					</div>
+					
+					<!-- form for RE controllers -->
+				    <div id="oe-form" class="frm">
+				        <!-- RE controllers -->
+				        <div id="controllersRE">
+				            
+				            <div id="drpdwnsRE" style="padding-top: 10px;">
+								<label for="zoneRE">Zone</label>
+					            <select id="zoneRE" class="drpdwn zone" onchange="changeZoneRE()">
+					              <option value=""></option>
+					              <option value="1">1</option>
+					              <option value="2">2</option>
+					              <option value="3">3</option>
+					            </select>
+					            &nbsp&nbsp&nbsp&nbsp&nbsp                      
+					            <label for="stageRE">Stage</label>
+					            <select id="stageRE" class="drpdwn stage" onchange="changeStageRE()">
+					              <option value="0">0</option>
+					              <option value="1">1</option>
+					              <option value="2">2</option>
+					              <option value="3">3</option>
+					              <option value="4a (macula on)">4a</option>
+					              <option value="4b (macula off)">4b</option>
+					              <option value="5">5</option>
+					            </select>
+				            </div>
+							
+				            <div id="totalRDRE" class="ttlRD">
+				            	<p>Total retinal detachment:</p>
+								<input onclick="addToReport1()" type="radio" class="radioOptn" name="totalDetachmentRE" id="openFunnelRE" value="a (open funnel)">
+								<label for="openFunnelRE">Open funnel detachment</label>
+								<br>
+								<input onclick="addToReport1()" type="radio" class="radioOptn" name="totalDetachmentRE" id="closedFunnelRE" value="b (closed funnel)">
+								<label for="closedFunnelRE">Closed funnel detachment</label>
+				        	</div>
+				        	
+	                        <div style="margin-top: 5px;">
+	                        <input type="checkbox" id="prePlusRE" value="Pre plus" class="chkbxR" onclick="whichQuadrant()">
+	                        <label for="prePlusRE">Pre plus disease</label>
+	                        <div id="prePlusQuadrantRE" class="quads">
+	                            <input type="checkbox" id="prePlusSTRE" value="Superotemporal" class="chkbxR">
+	                            <label for="prePlusSTRE">Superotemporal</label>
+	                            <input type="checkbox" id="prePlusSNRE" value="Superonasal" class="chkbxR">
+	                            <label for="prePlusSNRE">Superonasal</label>
+	                            <input type="checkbox" id="prePlusITRE" value="Inferotemporal" class="chkbxR">
+	                            <label for="prePlusITRE">Inferotemporal</label>
+	                            &nbsp&nbsp<input type="checkbox" id="prePlusINRE" value="Inferonasal" class="chkbxR">
+	                            <label for="prePlusINRE">Inferonasal</label>
+	                        </div>
+	                        </div>
+	                    
+	                        <div>
+	                        <input type="checkbox" id="plusRE" value="plus disease" class="chkbxR" onclick="whichQuadrant()">
+	                        <label for="plusRE">Plus disease</label>
+	                        <div id="plusQuadrantRE" class="quads">
+	                            <input type="checkbox" id="plusSTRE" value="Superotemporal" class="chkbxR">
+	                            <label for="plusSTRE">Superotemporal</label>
+	                            <input type="checkbox" id="plusSNRE" value="Superonasal" class="chkbxR">
+	                            <label for="plusSNRE">Superonasal</label>
+	                            <input type="checkbox" id="plusITRE" value="Inferotemporal" class="chkbxR">
+	                            <label for="plusITRE">Inferotemporal</label>
+	                            &nbsp&nbsp<input type="checkbox" id="plusINRE" value="Inferonasal" class="chkbxR">
+	                            <label for="plusINRE">Inferonasal</label>
+	                        </div>
+	                        </div>
+	                    
+	                        <div>
+	                        <input type="checkbox" id="APROPRE" value="APROP" class="chkbxR">
+	                        <label for="APROPRE">APROP</label>
+	                        </div>
+	
+							<div style="padding-top: 7px;">
+								<label for="hazeRE">Vitreous Haze</label> &nbsp
+					            <select id="hazeRE">
+					              <option value="">Clear</option>
+					              <option value="1">Mild</option>
+					              <option value="2">Moderate</option>
+					              <option value="3">Severe</option>
+					            </select>
+							</div>
+							
+							<div style="margin-top: -1px;">
+		                    	<label for="tvlRE">Tunica vasculosa lentis</label>&nbsp
+		                    	<input type="checkbox" id="tvlRE">
+							</div>
+					
+				        </div>
+				        <!-- end of RE controllers -->
+				        
+				        <!-- RE report -->
+				        <div id="reportRE" style="margin-top:0.4em; margin-bottom: 0.4em">
+				            <p class="lable"><b>Description:</b>
+				            <span id="report1" class="rprt" style="color: #0000FF; display: inline"></span></p>
+							<textarea style="margin-top: 10px; width: 90%;" placeholder="Notes"></textarea>
+				        </div>				            
+				        <!-- end of RE report -->
+				    </div>
+				    <!-- end of RE form -->
+				</div>
+				
+				<div class="oneEyeFindings" style="float: left;">
+					<div class="ed-widget" id="eyedrawwidget_example" style="float: right;">
+						<div class="ed-editor">
+							<div class="ed-drawing-controls" style="z-index: 101;">
+								<div style="float: left; padding-right: 9px; vertical-align: top; margin-top: 0;"><b>L</b></div>
+								<div class="ed-selected-doodle" style="float: left; padding: 0; margin: 0; width: 85%;">
+									<select id="canvasRE_selected_doodle" class="ed-selected-doodle-select">
+									</select>
+								</div>
+								<ul class="ed-toolbar-panel ed-drawing-toolbar" style="padding-left: 7px">
+									<li>
+										<a class="ed-button" href="#" data-function="resetEyedraw">
+											<span class="icon-ed-reset"></span>
+											<span class="label" style="color: black;">Reset eyedraw</span>
+										</a>
+									</li>
+								</ul>
+							</div>
+							
+							<div class="ed-doodle-popup closed" style="z-index: 50;"></div>
+											
+							<div class="canvas-section" style="z-index: 51;">
+								<div class="ed-toolbar" style="float: left;">
+					                <ul class="ed-toolbar-panel ed-main-toolbar" id="toolbarL" style="display: table; margin: 0 auto;">
+					                </ul>
+					            </div>
+					            
+								<canvas
+								id="canvasLE"
+								class="ed-canvas-edit"
+								width="300"
+								height="300"
+								tabindex="2"
+								style="float:right;"
+								>
+								Browser does not support the drawing tools. Please use the form below.
+								</canvas>
+							</div>
+							
+							<input type="hidden" id="ed_example_data2" value='' />
+						</div>
+					</div>
+					
+										
+				    <div id="oe-form-le" class="frm" style="padding-top: 10px;">
+				        <!-- LE controllers -->
+				        <div id="controllersLE">			            
+				            <div id="drpdwnsLE">
+								<label for="zoneLE">Zone</label>
+					            <select id="zoneLE" class="drpdwn zone" onchange="changeZoneLE()">
+					              <option value=""></option>
+					              <option value="1">1</option>
+					              <option value="2">2</option>
+					              <option value="3">3</option>
+					            </select>
+					            &nbsp&nbsp&nbsp&nbsp&nbsp                      
+					            <label for="stageLE">Stage</label>
+					            <select id="stageLE" class="drpdwn stage" onchange="changeStageLE()">
+					              <option value="0">0</option>
+					              <option value="1">1</option>
+					              <option value="2">2</option>
+					              <option value="3">3</option>
+					              <option value="4a (macula on)">4a</option>
+					              <option value="4b (macula off)">4b</option>
+					              <option value="5">5</option>
+					            </select>
+				            </div>
+							
+				            <div id="totalRDLE" class="ttlRD">
+				            	<p>Total retinal detachment:</p>
+								<input onclick="addToReport2()" type="radio" class="radioOptn" name="totalDetachmentLE" id="openFunnelLE" value="a (open funnel)">
+								<label for="openFunnelLE">Open funnel detachment</label>
+								<br>
+								<input onclick="addToReport2()" type="radio" class="radioOptn" name="totalDetachmentLE" id="closedFunnelLE" value="b (closed funnel)">
+								<label for="closedFunnelLE">Closed funnel detachment</label>
+				        	</div>
+				        	
+							<div style="margin-top: 5px;">
+	                        <input type="checkbox" id="prePlusLE" value="pre plus" class="chkbxL" onclick="whichQuadrant()">
+	                        <label for="prePlusLE">Pre plus disease</label>
+	                        <div id="prePlusQuadrantLE" class="quads">
+	                            <input type="checkbox" id="prePlusSNLE" value="Superonasal" class="chkbxL">
+	                            <label for="prePlusSNLE">Superonasal</label>
+	                            <input type="checkbox" id="prePlusSTLE" value="Superotemporal" class="chkbxL">
+	                            <label for="prePlusSTLE">Superotemporal</label>
+	                            <input type="checkbox" id="prePlusINLE" value="Inferonasal" class="chkbxL">
+	                            <label for="prePlusINLE">Inferonasal</label>
+	                            &nbsp&nbsp<input type="checkbox" id="prePlusITLE" value="Inferotemporal" class="chkbxL">
+	                            <label for="prePlusITLE">Inferotemporal</label>
+	                        </div>
+	                        </div>
+	                    
+	                        <div>
+	                        <input type="checkbox" id="plusLE" value="plus disease" class="chkbxL" onclick="whichQuadrant()">
+	                        <label for="plusLE">Plus disease</label>
+	                        <div id="plusQuadrantLE" class="quads">
+	                            <input type="checkbox" id="plusSNLE" value="Superonasal" class="chkbxL">
+	                            <label for="plusSNLE">Superonasal</label>
+	                            <input type="checkbox" id="plusSTLE" value="Superotemporal" class="chkbxL">
+	                            <label for="plusSTLE">Superotemporal</label>
+	                            <input type="checkbox" id="plusINLE" value="Inferonasal" class="chkbxL">
+	                            <label for="plusINLE">Inferonasal</label>
+	                            &nbsp&nbsp<input type="checkbox" id="plusITLE" value="Inferotemporal" class="chkbxL">
+	                            <label for="plusITLE">Inferotemporal</label>
+	                        </div>
+	                        </div>
+	                    
+	                        <div>
+		                        <input type="checkbox" id="APROPLE" value="APROP" class="chkbxL">
+		                        <label for="APROPLE">APROP</label>
+	                        </div>
+				        
+							<div style="padding-top: 7px;">
+								<label for="hazeLE">Vitreous Haze</label> &nbsp
+					            <select id="hazeLE">
+					              <option value="">Clear</option>
+					              <option value="1">Mild</option>
+					              <option value="2">Moderate</option>
+					              <option value="3">Severe</option>
+					            </select>
+							</div>
+							
+							<div style="margin-top: -1px;">
+		                    	<label for="tvlLE">Tunica vasculosa lentis</label>&nbsp
+		                    	<input type="checkbox" id="tvlLE">
+							</div>
+							
+				        </div>
+				        <!-- end of LE controllers -->
+				        
+				        <!-- LE report -->
+				        <div id="reportLE" style="margin-top:0.3em; margin-bottom: 0.4em">
+				            <p class="lable"><b>Description:</b>
+				            <span id="report2" class="rprt" style="color: #0000FF; display: inline"></span></p>
+							<textarea style="margin-top: 10px; width: 90%;" placeholder="Notes"></textarea>				        
+				        </div>
+				        
+				        <!-- end of LE report -->
+				    </div>
+				    <!-- end of LE form -->
+				</div>
+			
+			</div>
+		
+		</div>
+		<!-- end of Assessment section-->
+	
+		<!-- management -->
+		<div id="management" class="page-section">
+			<div class="hdr">Outcome</div>
+			<div class="form-section">
+				<div style="margin-bottom: 10px; padding-left: 30px;"> 
+					<div >
+					Outcome:
+					<div style="padding-left: 70px; display: inline">
+						<input type="radio" name="outcome" value="f" id="outcomeF"><label for="outcomeF" style="margin-right: 5%">&nbspFollow up</label>
+						<br><input type="radio" name="outcome" value="t" id="outcomeT"><label for="outcomeT" style="margin-right: 5%">&nbspTreat</label>
+						<br><input type="radio" name="outcome" value="d" id="outcomeD"><label for="outcomeD" style="margin-right: 5%">&nbspDischarge</label>
+					</div>
+					</div>
+		            
+		            <select id="when" class="drpdwn stage" style="margin-left: 135px">
+		              <option value="" disabled selected>--select--</option>
+		              <option value="1">1 week</option>
+		              <option value="2">2 weeks</option>
+		              <option value="3">3 weeks</option>
+		              <option value="4">1 month</option>
+		              <option value="8">2 months</option>
+		              <option value="12">3 months</option>
+		            </select>
+		            
+		        </div>
+		        
+				<span style="height: 15px; width: 100%;padding-left: 30px;">Comments:<span style="padding-right: 62px"></span>
+				<textarea type="textarea" id="comments" rows="3"></textarea></span>
+				<div style="width: 100%; text-align: right; padding-top: 10px;">
+					<span id="sub-button" style="margin-right: 30px" onclick="alert('For demonstration purposes only.\nNo data will be saved.');">Save</span>
+				</div>
+			</div>
+			
+		</div>
+		
+	</div>
+</div>
+<div id="toNewWindow" style="display:none;">
+    <table style="width:100%; border: 1px solid gray;" class="tblPop">
+	
+	<tr style="background: #e3e3ff;">
+	<td>Names</td>
+	<td>Irving, Elsa</td> 
+	</tr>
+	
+	<tr>
+	<td>DOB</td>
+	<td>21 August 2015</td> 
+	</tr>
+	
+	<tr style="background: #e3e3ff;">
+	<td>Gestation</td>
+	<td>24 weeks, 5 days</td> 
+	</tr>
+	
+	<tr>
+	<td>Birth weight</td>
+	<td>710g</td> 
+	</tr>
+	
+	<tr style="background: #e3e3ff;">
+	<td>Ethnicity</td>
+	<td>Irish</td> 
+	</tr>
+	
+	<tr>
+	<td>Pregnancy type</td>
+	<td>Singleton</td> 
+	</tr>
+	
+	<tr style="background: #e3e3ff;">
+	<td>Conception type</td>
+	<td>Natural</td> 
+	</tr>
+	
+	</table>
+</div>
+
+	<script>
+	
+	(function() {
+
+		var titles = window.eyedrawDoodleTitles;
+		ED.setTitles(window.eyedrawDoodleTitles);
+
+		var doodles = window.eyedrawDoodleScripts.map(function(file) {
+			return file.replace(/.*\/|\..*/g, '');
+		});
+		
+		var images = window.eyedrawImages.map(function(image) {
+			return image.replace(/.*\/|\..*/g, '');
+		});
+
+		var validDoodles = doodles.filter(function(doodle) {
+			return (images.indexOf(doodle) >= 0);
+		});
+
+		var toolbar = validDoodles.map(function(doodle) {
+			return [
+				'<li style="display: inline-block;">',
+				'	<a class="ed-button" href="#" data-function="addDoodle" data-arg="' + doodle + '">',
+				'		<span class="icon-ed-' + doodle + '"></span>',
+				'		<span class="label" style="color: black;">' + (titles[doodle] || '') + '</span>',
+				'	</a>',
+				'</li>'
+			].join('');
+		}).join('');
+
+		var doodlesList = '<ul>' + validDoodles.map(function(doodle) {
+			return '<li>' + doodle + '</li>';
+		}).join('') + '</ul>';
+
+		$('#toolbar').html(toolbar);
+		$('#toolbarL').html(toolbar);
+         
+		// RE canvas
+        ED.init({
+			drawingName: "drawingEdit",
+			canvasId: "canvasRE",
+			eye: 0,
+			scale: 1,
+			idSuffix: "ROPre",
+			isEditable: true,
+			focus: false,
+			graphicsPath: "../img",
+			inputId: "ed_example_data",
+			onReadyCommandArray: [
+				['addDoodle', ['MaculaMark']],
+				['addDoodle', ['ROPFundus']],
+				['addDoodle', ['SupTempArcade']],
+				['addDoodle', ['SupNasalArcade']],
+				['addDoodle', ['InfNasalArcade']],
+				['addDoodle', ['InfTempArcade']],
+				['deselectDoodles', []]
+			],
+			onDoodlesLoadedCommandArray: [],
+			bindingArray: {
+				SupTempArcade: {
+                    APROP:{id:"APROPRE"},
+                    prePlus: {id:'prePlusSTRE'},
+                    plus: {id:'plusSTRE'}
+                },
+                InfTempArcade: {
+                    APROP:{id:"APROPRE"},
+                    prePlus: {id:'prePlusITRE'},
+                    plus: {id:'plusITRE'}
+                },
+                InfNasalArcade: {
+                    APROP:{id:"APROPRE"},
+                    prePlus: {id:'prePlusINRE'},
+                    plus: {id:'plusINRE'}
+                },
+                SupNasalArcade: {
+                    APROP:{id:"APROPRE"},
+                    prePlus: {id:'prePlusSNRE'},
+                    plus: {id:'plusSNRE'}
+                }
+			},
+			syncArray: {},
+			listenerArray: [],
+			offsetX: 0,
+			offsetY: 0,
+			toImage: false
+		}); 
+
+		// LE canvas
+        ED.init({
+			drawingName: "drawingEdit2",
+			canvasId: "canvasLE",
+			eye: 1,
+			scale: 1,
+			idSuffix: "ROPle",
+			isEditable: true,
+			focus: false,
+			graphicsPath: "../img",
+			inputId: "ed_example_data2",
+			onReadyCommandArray: [
+				['addDoodle', ['MaculaMark']],
+				['addDoodle', ['ROPFundus']],
+				['addDoodle', ['SupTempArcade']],
+				['addDoodle', ['SupNasalArcade']],
+				['addDoodle', ['InfNasalArcade']],
+				['addDoodle', ['InfTempArcade']],
+				['deselectDoodles', []]
+			],
+			onDoodlesLoadedCommandArray: [],
+			bindingArray: {
+				SupTempArcade: {
+                    APROP:{id:"APROPLE"},
+                    prePlus: {id:'prePlusSTLE'},
+                    plus: {id:'plusSTLE'}
+                },
+                InfTempArcade: {
+                    APROP:{id:"APROPLE"},
+                    prePlus: {id:'prePlusITLE'},
+                    plus: {id:'plusITLE'}
+                },
+                InfNasalArcade: {
+                    APROP:{id:"APROPLE"},
+                    prePlus: {id:'prePlusINLE'},
+                    plus: {id:'plusINLE'}
+                },
+                SupNasalArcade: {
+                    APROP:{id:"APROPLE"},
+                    prePlus: {id:'prePlusSNLE'},
+                    plus: {id:'plusSNLE'}
+                }
+			},
+			syncArray: {},
+			listenerArray: [],
+			offsetX: 0,
+			offsetY: 0,
+			toImage: false
+		}); 
+
+	}());
+	</script>
+
+</body>
+</html>

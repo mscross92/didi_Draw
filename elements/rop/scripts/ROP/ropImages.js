@@ -1,0 +1,16 @@
+window.eyedrawImages = [
+	"old/Sketch.gif",
+    "old/ROPDemarcationLine.png",
+    "old/ROPRidge.png",
+    "old/ROPRD.gif",
+    "old/ROPRRD.gif",
+    "old/HardExudate.png",
+    "old/HardExudate_hover.png",
+    "old/ROPstage3.gif",
+    "old/LaserDemarcation.gif", 
+    "old/Laser2.gif",
+    "old/LaserDevel.gif",
+    "old/RetinalHaemorrhage.gif",
+    "old/ROPHaemorrhage.gif",
+//     "old/VitreousHaze.gif",
+];
